@@ -1,0 +1,41 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p  $GENRICHout
+echo "`date +%Y%m%d-%H:%M:%S`: GENRICH call peaks"
+
+TBAM=$2
+CBAM=$3
+
+$SAMTOOLS sort -n -@ 10 -o ${GENRICHpre}.sortbyN.T.bam $TBAM
+
+if test $CBAM; then
+    $SAMTOOLS sort -n -@ 10 -o ${GENRICHpre}.sortbyN.C.bam $CBAM
+    $GENRICH \
+        -t ${GENRICHpre}.sortbyN.T.bam \
+        -c ${GENRICHpre}.sortbyN.C.bam \
+        -o ${GENRICHpre}_genrich.peaks.narrowPeak \
+        -f ${GENRICHpre}_genrich.bedgraph-ish.f \
+        -k ${GENRICHpre}_genrich.bedgraph-ish.k \
+        -r \
+        -j \
+        -v \
+        -a 200 \
+        -q 0.05
+    #-E $ATAC_BLACKLIST
+else
+    $GENRICH \
+        -t ${GENRICHpre}.sortbyN.T.bam\
+        -o ${GENRICHpre}_genrich.peaks.narrowPeak \
+        -f ${GENRICHpre}_genrich.bedgraph-ish.f \
+        -k ${GENRICHpre}_genrich.bedgraph-ish.k \
+        -r \
+        -j \
+        -v \
+        -a 200 \
+        -q 0.05
+    #-E $ATAC_BLACKLIST
+fi
+
+sort -k8,8nr ${GENRICHpre}_genrich.peaks.narrowPeak  > ${GENRICHpre}_genrich.peaks.narrowPeak.sort8

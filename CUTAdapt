@@ -1,0 +1,24 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p $CUTADAPTout
+echo "`date +%Y%m%d-%H:%M:%S`: cutadapt"
+
+CutadTri1=${CUTADAPTpre}_trimmed_1.fq.gz
+CutadTri2=${CUTADAPTpre}_trimmed_2.fq.gz
+CutadSht1=${CUTADAPTpre}_short_1.fq.gz 
+CutadSht2=${CUTADAPTpre}_short_2.fq.gz
+Fawfq1=${RawFQpre}_r1.fq.gz
+Fawfq2=${RawFQpre}_r2.fq.gz
+
+$CUTADAPT \
+   -j 30 \
+   --trim-n \
+   -q 13,11 \
+   -m 20 \
+   -o ${CutadTri1} \
+   -p ${CutadTri2} \
+   --too-short-output ${CutadSht1} \
+   --too-short-paired-output ${CutadSht2} \
+   $Fawfq1 $Fawfq2

@@ -1,0 +1,24 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+echo "`date +%Y%m%d-%H:%M:%S`: HOMER annotatioin results"
+
+INPEAKBED=$2
+OUT=$3
+OUTbase=$(basename $INPEAKBED)
+OUTpre=${OUT}/${OUTbase}
+
+mkdir -p  $OUT
+
+$ANNOTATEPEAKS \
+    $INPEAKBED \
+    $HOMER_REF \
+    -gtf $GENE_GTF \
+    -gid \
+    -cpu 10 \
+    -go ${OUTpre}_peaks.annotatePeaks.go \
+    -genomeOntology  ${OUTpre}_peaks.annotatePeaks.go.detail \
+    1> ${OUTpre}_peaks.annotatePeaks.txt
+    2> ${OUTpre}_peaks.annotatePeaks.log
+

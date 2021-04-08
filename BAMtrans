@@ -1,0 +1,31 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+echo "`date +%Y%m%d-%H:%M:%S`: bam merge sort index markdup"
+
+if [ ${#LIDs[@]} -le 1 ];then
+    ln -sfr ${BAMreplane} ${BAMpre}.merge.bam
+else
+    $SAMTOOLS merge -@ 20 -f ${BAMpre}.merge.bam  ${BAMreplane[@]}
+fi
+
+$SAMBAMBA sort -t 20 -o ${BAMpre}.merge.sort.bam ${BAMpre}.merge.bam
+<<COMMENT
+$JAVA_JRE -XX:ParallelGCThreads=20 -XX:ConcGCThreads=20 -Xmx20000M -jar $PICARD MarkDuplicates \
+    I=${BAMpre}.merge.sort.bam \
+    O=${BAMmkdup} \
+    REMOVE_DUPLICATES=false \
+    REMOVE_SEQUENCING_DUPLICATES=false \
+    M=${BAMmkdup}.txt
+COMMENT
+
+$SAMBAMBA markdup \
+    -t 10 \
+    -l 1 \
+    --tmpdir=$BAMout \
+    ${BAMpre}.merge.sort.bam  \
+    ${BAMmkdup}
+$SAMBAMBA index -t 5 ${BAMmkdup}
+
+rm -f  ${BAMpre}.merge.bam ${BAMpre}.merge.sort.bam ${BAMpre}.merge.sort.bam.bai

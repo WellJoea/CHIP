@@ -1,0 +1,23 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p  $HOMERBpre
+echo "`date +%Y%m%d-%H:%M:%S`: HOMER annotatioin results"
+
+INPEAKBED=$2
+
+CHR=(`cut -f 1 $INPEAKBED |sort -u`)
+if [[ ! ${CHR[0]} =~ "chr" ]];then
+    awk '{print "chr"$0}' $INPEAKBED > ${INPEAKBED}.chr
+else
+    ln -sf $INPEAKBED ${INPEAKBED}.chr
+fi
+$FINDMOTIFSGENOME \
+    ${INPEAKBED}.chr \
+    $HOMER_REF \
+    $HOMERBpre \
+    -p 10 \
+    -len 8,10,12 \
+    -size 200
+

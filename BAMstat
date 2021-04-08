@@ -1,0 +1,49 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p $BAMstatout $BAMstathead
+echo "`date +%Y%m%d-%H:%M:%S`: BAM states"
+
+INBAM=$2
+INBAMbase=$(basename $INBAM)
+OUBAMpre=${BAMstatout}/${INBAMbase/%.bam/}
+
+$SAMTOOLS stat -@ 10 $INBAM > ${OUBAMpre}.stat.txt
+$SAMTOOLS flagstat -@ 10 $INBAM > ${OUBAMpre}.flagstat.txt
+$SAMTOOLS idxstats -@ 10 $INBAM > ${OUBAMpre}.idxstats.txt
+$SAMTOOLS coverage  $INBAM > ${OUBAMpre}.coverage.txt
+$PLOTBAMSTATS -p $BAMstathead/${INBAMbase/%.bam/} ${OUBAMpre}.stat.txt
+
+${JAVA_JDK} -Xmx40g -XX:ParallelGCThreads=20 -jar $PICARD \
+    CollectWgsMetrics\
+    I=$INBAM \
+    O=${OUBAMpre}.CollectWgsMetrics.txt \
+    CAP=10000 \
+    INCLUDE_BQ_HISTOGRAM=true \
+    COUNT_UNPAIRED=true \
+    Q=1 \
+    REFERENCE_SEQUENCE=$GENOME_REF
+#-XX:ConcGCThreads=2
+
+${JAVA_JDK} -Xmx40g -XX:ParallelGCThreads=20 -jar $PICARD \
+    CollectInsertSizeMetrics \
+    I=$INBAM \
+    O=${OUBAMpre}.CollectInsertSizeMetrics.txt \
+    H=${OUBAMpre}.CollectInsertSizeMetrics.pdf
+
+<<COMMENT
+$PRESEQ lc_extrap \
+   -output ${OUBAMpre}.ccurve.txt \
+   -verbose \
+   -bam \
+   -pe \
+   $INBAM
+
+${JAVA_JDK} -Xmx40g -XX:ParallelGCThreads=20 -jar $PICARD \
+   CollectMultipleMetrics \
+   I=$INBAM \
+   O=${OUBAMpre}.CollectMultipleMetrics.txt \
+   REFERENCE_SEQUENCE=$GENOME_REF \
+   VALIDATION_STRINGENCY=LENIENT
+COMMENT

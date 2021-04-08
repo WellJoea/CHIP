@@ -1,0 +1,31 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p $BIGWIGout
+echo "`date +%Y%m%d-%H:%M:%S`: Read depth normalised bigWig"
+
+INBAM=$2
+
+#INBAMbase=$(basename $INBAM)
+#OUTpre=${BIGWIGout}/${INBAMbase/%.bam/}W
+#FLAGstat=$BAMstatout/${INBAMbase/%.bam/}.flagstat.txt
+#RPMScale=\$(grep 'mapped (' $FLAGstat | awk '{print 1000000/\$1}')
+#cut -f 1,2 ${fasta}.fai > ${fasta}.sizes
+
+TmpScale=$(bc <<< "scale=6;1000000/$($SAMTOOLS view -@ 5 -f 0 -c $INBAM)")
+$GENOMECOVERAGEBED \
+    -ibam $INBAM \
+    -scale $TmpScale \
+    -bg -pc | \
+    sort -T '.' -k1,1 -k2,2n \
+    > ${BIGWIGpre}.scaled.bedGraph
+
+$GENOMECOVERAGEBED \
+    -ibam $INBAM \
+    -bg -pc | \
+    sort -T '.' -k1,1 -k2,2n \
+    > ${BIGWIGpre}.deflaut.bedGraph
+
+$BEDGRAPHTOBIGWIG ${BIGWIGpre}.scaled.bedGraph ${GENOME_REF}.fai ${BIGWIGpre}.scaled.bigWig
+find $BIGWIGout -type f -name "*.bigWig" -exec echo -e {}"\t0,0,178" \; > ${BIGWIGpre}.bigWig.igv.txt

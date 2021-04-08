@@ -1,0 +1,20 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+
+mkdir -p $IDRout
+echo "`date +%Y%m%d-%H:%M:%S`: IDR"
+
+if [ ${#TIDs[@]} -eq 2 ];then
+    $IDR \
+        --input-file-type narrowPeak \
+        --rank p.value \
+        --output-file ${IDRpre}.idrValues.txt \
+        --log-output-file ${IDRpre}.idrValues.log \
+        --plot \
+        --samples ${IDRPeak[@]}
+else
+    touch ${IDRpre}.idrValues.txt
+fi
+

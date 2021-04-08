@@ -1,0 +1,21 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p $ATAQCout
+echo "`date +%Y%m%d-%H:%M:%S`: ATAQV"
+
+INBAM=$2
+peakfile=$3
+sample=$TID
+
+$ATAQV \
+    --threads 20 \
+    --peak-file $peakfile \
+    --name $sample \
+    --excluded-region-file $ATAC_BLACKLIST \
+    --ignore-read-groups human \
+    --metrics-file ${ATAQCpre}.ataqv.json.gz \
+    $INBAM \
+    > ${ATAQCpre}.ataqv.out
+#    --tss-file hg38.tss.refseq.bed.gz \

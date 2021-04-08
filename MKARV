@@ -1,0 +1,17 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p $ATAQCout/$SID
+echo "`date +%Y%m%d-%H:%M:%S`: MKARV"
+
+if [ ${#TIDs[@]} -gt 1 ];then
+    $MKARV
+        --concurrency 20 \
+        --force \
+        $ATAQCout/$SID \
+        ${ATAQCrep[@]}
+else
+    touch $ATAQCout/$SID/index.html
+fi
+

@@ -1,0 +1,42 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+echo "`date +%Y%m%d-%H:%M:%S`: FRpi compute"
+
+<<COMMENT
+mkdir -p $FRIPout
+INBAMbase=$(basename $INBAM)
+OUTpre=${BIGWIGout}/${INBAMbase/%.bam/}W
+FLAGstat=$BAMstatout/${INBAMbase/%.bam/}.flagstat.txt
+COMMENT
+
+INpeak=$2
+INBAM=$3
+
+
+awk 'BEGIN{FS=OFS="\t"; print "GeneID\tChr\tStart\tEnd\tStrand"}{print $4, $1, $2+1, $3, "."}' \
+    $INpeak \
+    > ${INpeak}.saf
+
+$FEATURECOUNTS \
+    -F SAF \
+    -T 10 \
+    -p --donotsort \
+    -a ${INpeak}.saf \
+    -o ${INpeak}.fCounts.txt \
+    $INBAM \
+    2> ${INpeak}.fCounts.log
+#--fracOverlap 0.2 \
+
+<<COMMENT
+approachII:
+samtools view -c $INBAM
+38439210
+bedtools sort -i $INpeak | \
+  bedtools merge -i stdin | \
+  bedtools intersect -u -nonamecheck -a $INBAM -b stdin -ubam | \
+  samtools view -c
+428359
+FRIP=428359/38439210
+COMMENT

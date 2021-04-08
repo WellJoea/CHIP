@@ -1,0 +1,167 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p  $DEEPTout
+echo "`date +%Y%m%d-%H:%M:%S`: Deeptools results"
+
+TBAM=$2
+CBAM=$3
+
+BAMbw=${DEEPTpre}.SeqDepthNorm.bw
+DEEPhmapgz=${DEEPTpre}.heatmap.gz
+DEEPindivi=${DEEPTpre}.IndividualValues.tab
+DEEPregion=${DEEPTpre}.Heatmap1sortedRegions.bed
+
+if test $CBAM; then
+    $BAMCOMPARE \
+        --bamfile1 $TBAM \
+        --bamfile2 $CBAM \
+        -o $BAMbw \
+        --binSize 50 \
+        --normalizeUsing None \
+        --effectiveGenomeSize $EffectiveSize \
+        --numberOfProcessors 10 \
+        --blackListFileName $ATAC_BLACKLIST
+else
+    $BAMCOVERAGE \
+        --bam $TBAM \
+        -o $BAMbw \
+        --binSize 50 \
+        --normalizeUsing RPKM \
+        --effectiveGenomeSize $EffectiveSize \
+        --numberOfProcessors 10 \
+        --blackListFileName $ATAC_BLACKLIST
+fi
+
+$COMPUTEMATRIX scale-regions \
+    -p 10 \
+    -R $GENE_GTF \
+    -S $BAMbw \
+    --startLabel TSS \
+    --endLabel TES \
+    --regionBodyLength 1000 \
+    --beforeRegionStartLength 3000 \
+    --afterRegionStartLength 3000 \
+    --skipZeros \
+    --outFileName $DEEPhmapgz  \
+    --outFileNameMatrix  $DEEPindivi \
+    --outFileSortedRegions $DEEPregion \
+    --blackListFileName $ATAC_BLACKLIST \
+    --smartLabels
+
+$PLOTPROFILE \
+    --matrixFile $DEEPhmapgz \
+    --dpi 300 \
+    --plotFileFormat pdf \
+    --outFileName ${DEEPTpre}.plotProfile.pdf \
+    --outFileNameData ${DEEPTpre}.plotProfile.tab
+#--outFileSortedRegions ${DEEPTpre}.plotProfile.bed \
+
+$PLOTHEATMAP \
+    --matrixFile $DEEPhmapgz \
+    --outFileName ${DEEPTpre}.plotHeatmap.pdf \
+    --outFileNameMatrix ${DEEPTpre}.plotHeatmap.mat.tab
+#--outFileSortedRegions ${DEEPTpre}.plotHeatmap.bed \
+
+$PLOTFINGERPRINT \
+    -p 10 \
+    --bamfiles $TBAM \
+    --plotFile ${DEEPTpre}.plotFingerprint.pdf \
+    --outRawCounts ${DEEPTpre}.plotFingerprint.raw.txt \
+    --outQualityMetrics ${DEEPTpre}.plotFingerprint.qcmetrics.txt \
+    --skipZeros
+
+
+
+
+<<COMMENT
+$COMPUTEMATRIX reference-point \
+    -p 10 \
+    -R $GENE_GTF \
+    -S $BAMbw \
+    --referencePoint TSS \
+    --beforeRegionStartLength 3000 \
+    --afterRegionStartLength 3000 \
+    --skipZeros \
+    --outFileName ${DEEPhmapgz}.rp  \
+    --outFileNameMatrix  ${DEEPindivi}.rp \
+    --outFileSortedRegions ${DEEPregion}.rp \
+    --blackListFileName $ATAC_BLACKLIST \
+    --smartLabels
+COMMENT
+
+<<COMMENT
+IN=/share/home/share/software/Python-3.8.3/bin/
+ATAC_BLACKLIST=/share/home/share/Repository/GenomeDB/Blacklist/mm10.blacklist.bed
+GENE_GTF=/share/home/share/Repository/GenomeDB/Reference/Mus_Musculus/ENSEMBL/Mus_musculus.GRCm38.100.gtf
+computeMatrix scale-regions \
+    -p 40 \
+    -S  /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc4/ATAC/DEEPTStat/3T3-ATAC-sc4__D1.SeqDepthNorm.rpkm.bw \
+        /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc5/ATAC/DEEPTStat/3T3-ATAC-sc5__D1.SeqDepthNorm.rpkm.bw \
+        /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc6/ATAC/DEEPTStat/3T3-ATAC-sc6__D1.SeqDepthNorm.rpkm.bw \
+        /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc7/ATAC/DEEPTStat/3T3-ATAC-sc7__D1.SeqDepthNorm.rpkm.bw \
+    -R $GENE_GTF \
+    --startLabel TSS \
+    --endLabel TES \
+    --beforeRegionStartLength 3000 \
+    --regionBodyLength 5000 \
+    --afterRegionStartLength 3000 \
+    --skipZeros \
+    --outFileName all.matrix.mat.gz \
+    --outFileNameMatrix  all.IndividualValues.tab\
+    --outFileSortedRegions all.Heatmap1sortedRegions.bed \
+    --blackListFileName $ATAC_BLACKLIST \
+    --smartLabels
+
+plotHeatmap \
+    --matrixFile all.matrix.mat.gz \
+    --outFileName all.plotHeatmap..clust.pdf \
+    --outFileNameMatrix all.plotHeatmap.mat.tab \
+    --colorMap YlGn \
+    --whatToShow 'heatmap and colorbar' \
+    --kmeans 4  \
+    --heatmapHeight 40 \
+    --heatmapWidth 8 
+
+plotHeatmap \
+    --matrixFile all.matrix.mat.gz \
+    --outFileName all.plotHeatmap.pdf \
+    --outFileNameMatrix all.plotHeatmap.mat.tab \
+    --colorMap viridis \
+    --whatToShow 'heatmap and colorbar' \
+    --heatmapHeight 40 \
+    --heatmapWidth 8 
+
+#--zMin -3 --zMax 3 --kmeans 4 \
+
+/share/home/share/Pipeline/13SCATAC/ATACPipe1/ATACtools.py mergepeak \
+    -B  /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc4/ATAC/MACS2_CP/3T3-ATAC-sc4__D1_peaks.narrowPeak,/data/zhouwei/02production/20200721_17170/3T3-ATAC-sc5/ATAC/MACS2_CP/3T3-ATAC-sc5__D1_peaks.narrowPeak,/data/zhouwei/02production/20200721_17170/3T3-ATAC-sc6/ATAC/MACS2_CP/3T3-ATAC-sc6__D1_peaks.narrowPeak,/data/zhouwei/02production/20200721_17170/3T3-ATAC-sc7/ATAC/MACS2_CP/3T3-ATAC-sc7__D1_peaks.narrowPeak \
+    -o ./
+
+#grep "#sequence-region"  /share/home/share/Repository/GenomeDB/Reference/Homo_Sapiens/ENSEMBL/Homo_sapiens.GRCh38.100.gff3 |awk 'BEGIN{FS=" ";OFS="\t"}''{print $2,$3,$4}' > ref.bed
+/data/zhouwei/02production/20200721_17170/3T3-ATAC-sc4/ATAC/WorkShell/get.merge.ref.bed.py
+make_tracks_file \
+    --trackFiles /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc4/ATAC/DEEPTStat/3T3-ATAC-sc4__D1.SeqDepthNorm.rpkm.bw \
+                 /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc5/ATAC/DEEPTStat/3T3-ATAC-sc5__D1.SeqDepthNorm.rpkm.bw \
+                 /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc6/ATAC/DEEPTStat/3T3-ATAC-sc6__D1.SeqDepthNorm.rpkm.bw \
+                 /data/zhouwei/02production/20200721_17170/3T3-ATAC-sc7/ATAC/DEEPTStat/3T3-ATAC-sc7__D1.SeqDepthNorm.rpkm.bw \
+                 /share/home/share/Repository/GenomeDB/Reference/Mus_Musculus/ENSEMBL/Mus_musculus.GRCm38.100.gtf \
+                 -o tracks.ini
+
+pyGenomeTracks \
+    --tracks tracks.ini \
+    --outFileName all.nice_image.pdf \
+    --BED ref.bed
+
+pyGenomeTracks \
+    --tracks tracks.ini \
+    --outFileName all.ref.pdf \
+    --BED merge.peaks_REF.bed
+
+pyGenomeTracks \
+    --tracks tracks.ini \
+    --outFileName all.ref.pdf \
+    --BED merge.peaks_REF.bed
+
+COMMENT

@@ -1,0 +1,17 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+mkdir -p $BAMout
+echo "`date +%Y%m%d-%H:%M:%S`: BWA mem"
+
+BAMfq1=$2
+BAMfq2=$3
+
+${BWA} mem \
+    -t 20 \
+    -M \
+    -R "@RG\tID:${SID}\tSM:${SID}\tLB:${SID}\tPL:ILLUMINA\tPU:flowcell-barcode.lane" \
+    ${BWAref} \
+    ${BAMfq1} ${BAMfq2} | \
+    ${SAMTOOLS} view  -@ 20 -Sb - -o ${BAMout}/${AID}.bam

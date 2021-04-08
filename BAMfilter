@@ -1,0 +1,18 @@
+. $1
+. $(dirname $(realpath $0))/env.Configure
+. $(dirname $(realpath $0))/env.Variable
+
+echo "`date +%Y%m%d-%H:%M:%S`: bam filter unmap,secondary,supplementary"
+
+INBAM=$2
+INBAMpre=${INBAM/%.bam/}
+
+$SAMTOOLS view -bS -F 2820  -@ 20 -q 1 $INBAM -o ${INBAMpre}.remove2820.tmp.bam
+$SAMBAMBA sort -t 20 -o ${INBAMpre}.remove2820.bam ${INBAMpre}.remove2820.tmp.bam
+rm -rf ${INBAMpre}.remove2820.tmp.bam
+
+#$SAMTOOLS sort -@ 10 -l 1  -o ${INBAMpre}.remove2820.bam
+#$SAMTOOLS index -@ 10 ${INBAMpre}.remove2820.bam
+#samtools bam2fq -1 paired1.fq -2 paired2.fq -n Plasmid.sorted.markdup.unmapped.bam
+#seqtk seq -a paired1.fq > paired1.fa
+#samtools view -b -f 2 -F 4 -F 8 -F 256 -F 512 -F 2048
